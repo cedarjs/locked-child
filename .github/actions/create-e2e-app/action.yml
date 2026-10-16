@@ -18,6 +18,14 @@ runs:
   using: composite
 
   steps:
+    - name: 🐈 Let yarn write the app's lockfile
+      shell: bash
+      # Yarn installs immutably on CI. The new app has no lockfile yet, and
+      # adding packages to it changes the lockfile
+      run: |
+        echo "YARN_ENABLE_IMMUTABLE_INSTALLS=false" >> "$GITHUB_ENV"
+        echo "YARN_ENABLE_HARDENED_MODE=0" >> "$GITHUB_ENV"
+
     - name: 📦 Pack this package
       shell: bash
       run: yarn pack -o "$RUNNER_TEMP/locked-child.tgz"
