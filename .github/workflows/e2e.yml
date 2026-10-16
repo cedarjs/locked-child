@@ -1,0 +1,135 @@
+name: E2E
+
+# Deploys a new Cedar app with a function that runs locked children to
+# Netlify and to Vercel, and checks what the children could and couldn't do
+# there. Weekly too, against Cedar's latest canary: a change in Cedar's
+# build, the platforms' runtimes or Node can break this without a change
+# here
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays, 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group:
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CEDAR_DISABLE_TELEMETRY: 1
+  # The e2e function doesn't use the database. An absolute path keeps the
+  # app's db.ts from looking for cedar.toml when it's imported
+  DATABASE_URL: file:/tmp/e2e.db
+
+jobs:
+  netlify:
+    name: 🔷 Netlify deploy
+    # Pull requests from forks get no secrets
+    if:
+      github.event_name != 'pull_request' ||
+      !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/set-up
+
+      - name: 🌲 Create the e2e app
+        id: app
+        uses: ./.github/actions/create-e2e-app
+        with:
+          provider: netlify
+
+      - name: 🆕 Create a Netlify site
+        id: site
+        # From /tmp, so the CLI doesn't find a project to link to
+        working-directory: /tmp
+        run: |
+          OUTPUT=$(npx -y netlify sites:create --name "locked-child-e2e-$(date +%s)" --json)
+          echo "site-id=$(echo "$OUTPUT" | jq -r '.id')" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Deploy
+        id: deploy
+        working-directory: ${{ steps.app.outputs.app-dir }}
+        # `netlify deploy` runs the build command from netlify.toml here
+        run: |
+          npx -y netlify link --id "${{ steps.site.outputs.site-id }}" --filter web
+          npx -y netlify env:set DATABASE_URL "$DATABASE_URL" --filter web
+          OUTPUT=$(npx -y netlify deploy --filter web --prod --json)
+          echo "$OUTPUT"
+          echo "url=$(echo "$OUTPUT" | jq -r '.url')" >> "$GITHUB_OUTPUT"
+
+      - name: 🧪 Test the deployed function
+        run: node --test e2e/deployed.test.ts
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+
+      - name: 🧹 Delete the Netlify site
+        if: always() && steps.site.outputs.site-id != ''
+        working-directory: /tmp
+        run:
+          npx -y netlify sites:delete --force "${{ steps.site.outputs.site-id
+          }}"
+
+  vercel:
+    name: ▲ Vercel deploy
+    if:
+      github.event_name != 'pull_request' ||
+      !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/set-up
+
+      - name: 🌲 Create the e2e app
+        id: app
+        uses: ./.github/actions/create-e2e-app
+        with:
+          provider: vercel
+
+      - name: 🏗️ Build
+        working-directory: ${{ steps.app.outputs.app-dir }}
+        run: yarn cedar build --ud --apiRootPath=/.api/functions
+
+      - name: 🆕 Create a Vercel project
+        id: project
+        run: |
+          NAME="locked-child-e2e-$(date +%s)"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          npx -y vercel projects add "$NAME" --token "$VERCEL_TOKEN"
+
+      - name: 🚀 Deploy
+        id: deploy
+        working-directory: ${{ steps.app.outputs.app-dir }}
+        run: |
+          NAME="${{ steps.project.outputs.name }}"
+          npx -y vercel link --project "$NAME" --token "$VERCEL_TOKEN" --yes
+          echo "$DATABASE_URL" | npx -y vercel env add DATABASE_URL production --token "$VERCEL_TOKEN" --yes
+          npx -y vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+          # The production alias: a deployment's own URL may be behind
+          # Vercel's deployment protection
+          echo "url=https://$NAME.vercel.app" >> "$GITHUB_OUTPUT"
+
+      - name: 🧪 Test the deployed function
+        run: node --test e2e/deployed.test.ts
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+
+      - name: 🧹 Delete the Vercel project
+        if: always() && steps.project.outputs.name != ''
+        run:
+          npx -y vercel rm "${{ steps.project.outputs.name }}" --token
+          "$VERCEL_TOKEN" --yes

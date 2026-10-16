@@ -1,0 +1,46 @@
+name: Create the e2e app
+description: >
+  A new Cedar app from the latest canary, set up for Universal Deploy on
+  `provider`, with this package (packed from the checkout) and the e2e function
+  that runs locked children
+
+inputs:
+  provider:
+    description: netlify or vercel
+    required: true
+
+outputs:
+  app-dir:
+    description: The app's folder
+    value: ${{ steps.create.outputs.app-dir }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: 📦 Pack this package
+      shell: bash
+      run: yarn pack -o "$RUNNER_TEMP/locked-child.tgz"
+
+    - name: 🌲 Create a Cedar app
+      id: create
+      shell: bash
+      # From RUNNER_TEMP, so the app isn't inside this repo's checkout
+      working-directory: ${{ runner.temp }}
+      run: |
+        npx -y create-cedar-app@canary e2e-app --yes --typescript \
+          --no-git-init --no-telemetry --db sqlite --pm yarn
+        echo "app-dir=$RUNNER_TEMP/e2e-app" >> "$GITHUB_OUTPUT"
+
+    - name: 🔧 Set up Universal Deploy on ${{ inputs.provider }}
+      shell: bash
+      working-directory: ${{ steps.create.outputs.app-dir }}
+      run: |
+        yarn cedar setup deploy universal-deploy
+        yarn cedar setup deploy ${{ inputs.provider }} --ud
+
+    - name: 🧒 Add this package and the e2e function
+      shell: bash
+      run: >
+        node e2e/addToApp.ts "${{ steps.create.outputs.app-dir }}"
+        "$RUNNER_TEMP/locked-child.tgz"

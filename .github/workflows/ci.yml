@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group:
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CEDAR_DISABLE_TELEMETRY: 1
+
+jobs:
+  test:
+    name: 🧪 Test / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/set-up
+
+      - name: 🎨 Check formatting
+        run: yarn format:check
+
+      - name: 🔎 Typecheck
+        run: yarn typecheck
+
+      - name: 🧪 Test
+        run: yarn test
+
+  vercel-build:
+    # A Cedar app built for Vercel, without deploying it: needs no secrets,
+    # so it runs on pull requests from forks too
+    name: ▲ Vercel build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/set-up
+
+      - name: 🌲 Create the e2e app
+        id: app
+        uses: ./.github/actions/create-e2e-app
+        with:
+          provider: vercel
+
+      - name: 🏗️ Build
+        working-directory: ${{ steps.app.outputs.app-dir }}
+        run: yarn cedar build --ud --apiRootPath=/.api/functions
+
+      - name: 🧪 Check the functions
+        run: node --test e2e/vercelBuild.test.ts
+        env:
+          APP_DIR: ${{ steps.app.outputs.app-dir }}

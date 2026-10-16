@@ -1,0 +1,30 @@
+name: Set up
+description: Node.js 24, Corepack and this repo's dependencies
+
+runs:
+  using: composite
+
+  steps:
+    - name: ⬢ Enable Corepack
+      shell: bash
+      # --force makes it work on Windows
+      run: npm install --global --force corepack
+
+    - name: ⬢ Set up Node.js
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      with:
+        node-version: '24'
+        # Runner images cache an older Node 24, which setup-node otherwise
+        # prefers to the latest release
+        check-latest: true
+
+    - name: ⬢ Enable Corepack again
+      # setup-node replaces the Node.js that Corepack was installed for on
+      # Windows
+      if: runner.os == 'Windows'
+      shell: bash
+      run: npm install --global --force corepack
+
+    - name: 🐈 Install dependencies
+      shell: bash
+      run: yarn install --immutable

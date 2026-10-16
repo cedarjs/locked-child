@@ -1,0 +1,59 @@
+{
+  "name": "@cedarjs/locked-child",
+  "version": "0.1.0",
+  "description": "Run code on untrusted input in a locked-down child process",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cedarjs/locked-child.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite/index.d.ts",
+      "default": "./dist/vite/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "prepack": "yarn build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'src/**/*.test.ts'"
+  },
+  "devDependencies": {
+    "@cedarjs/project-config": "8.0.0-canary.3440",
+    "@types/node": "24.10.4",
+    "oxfmt": "0.59.0",
+    "sharp": "0.35.5",
+    "typescript": "7.0.2",
+    "vite": "7.3.7"
+  },
+  "peerDependencies": {
+    "@cedarjs/project-config": ">=8.0.0-canary.3440",
+    "vite": ">=7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@cedarjs/project-config": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "yarn@4.18.1"
+}
