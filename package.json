@@ -33,7 +33,7 @@
     "test": "node --test 'src/**/*.test.ts'"
   },
   "devDependencies": {
-    "@cedarjs/project-config": "8.0.0-canary.3440",
+    "@cedarjs/project-config": "8.0.0-canary.3451",
     "@types/node": "24.10.4",
     "oxfmt": "0.59.0",
     "sharp": "0.35.5",
@@ -41,7 +41,7 @@
     "vite": "7.3.7"
   },
   "peerDependencies": {
-    "@cedarjs/project-config": ">=8.0.0-canary.3440",
+    "@cedarjs/project-config": ">=8.0.0-canary.3451",
     "vite": ">=7.0.0"
   },
   "peerDependenciesMeta": {

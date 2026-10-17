@@ -9,14 +9,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@cedarjs/locked-child@workspace:."
   dependencies:
-    "@cedarjs/project-config": "npm:8.0.0-canary.3440"
+    "@cedarjs/project-config": "npm:8.0.0-canary.3451"
     "@types/node": "npm:24.10.4"
     oxfmt: "npm:0.59.0"
     sharp: "npm:0.35.5"
     typescript: "npm:7.0.2"
     vite: "npm:7.3.7"
   peerDependencies:
-    "@cedarjs/project-config": ">=8.0.0-canary.3440"
+    "@cedarjs/project-config": ">=8.0.0-canary.3451"
     vite: ">=7.0.0"
   peerDependenciesMeta:
     "@cedarjs/project-config":
@@ -26,16 +26,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cedarjs/project-config@npm:8.0.0-canary.3440":
-  version: 8.0.0-canary.3440
-  resolution: "@cedarjs/project-config@npm:8.0.0-canary.3440"
+"@cedarjs/project-config@npm:8.0.0-canary.3451":
+  version: 8.0.0-canary.3451
+  resolution: "@cedarjs/project-config@npm:8.0.0-canary.3451"
   dependencies:
     "@prisma/internals": "npm:7.10.0"
     deepmerge: "npm:4.3.1"
     fast-glob: "npm:3.3.3"
     smol-toml: "npm:1.9.1"
     string-env-interpolation: "npm:1.0.1"
-  checksum: 10c0/880f092cc989e4195f8962956cf27b41c46f899cd5afb9b3f9a6f1c0ac5de3dd18892901ed1a5a4074c0aa5f670ae35d91d7817899e784b10e9f4239d5e5f421
+  checksum: 10c0/0dd47371e4869d7f239f418a4f60e7440989cb4a66370a07bfc2562fc618f786e6ca4946d42f50b42202105ea748eaf3f477cd59d6ea24e692b1fff64805dade
   languageName: node
   linkType: hard
 
